@@ -9,11 +9,13 @@
         .container { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; }
         h1 { color: #2c3e50; }
         textarea { width: 100%; height: 200px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; font-size: 16px; margin-bottom: 20px; box-sizing: border-box; }
-        button { background-color: #3498db; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
-        button:hover { background-color: #2980b9; }
+        .main-button { background-color: #3498db; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
+        .main-button:hover { background-color: #2980b9; }
         #result-container { margin-top: 30px; padding: 20px; border-radius: 8px; font-size: 24px; font-weight: bold; transition: all 0.3s; }
         .primary { background-color: #eafaf1; color: #2ecc71; }
         .spam { background-color: #fbeee6; color: #e74c3c; }
+        #correction-buttons { margin-top: 15px; display: none; } /* Initially hidden */
+        .correction-button { background-color: #95a5a6; color: white; border: none; padding: 10px 20px; font-size: 14px; border-radius: 8px; cursor: pointer; margin: 0 10px; }
     </style>
 </head>
 <body>
@@ -21,44 +23,77 @@
         <h1>AI Email Classifier</h1>
         <p>Paste the full raw text of an email below to classify it.</p>
         <textarea id="emailText" placeholder="Paste raw email text here..."></textarea>
-        <button onclick="classifyEmail()">Classify Email</button>
+        <button class="main-button" onclick="classifyEmail()">Classify Email</button>
         <div id="result-container"></div>
+        <!-- New Correction Buttons -->
+        <div id="correction-buttons">
+            <p>Is this wrong?</p>
+            <button class="correction-button" onclick="learn('primary')">Correct: It's Primary</button>
+            <button class="correction-button" onclick="learn('spam')">Correct: It's Spam</button>
+        </div>
     </div>
 
     <script>
+        // Store the last email text globally for the learn function
+        let lastEmailText = "";
+
         async function classifyEmail() {
-            const emailText = document.getElementById('emailText').value;
+            lastEmailText = document.getElementById('emailText').value; // Save the text
             const resultContainer = document.getElementById('result-container');
+            const correctionContainer = document.getElementById('correction-buttons');
             
-            if (!emailText.trim()) {
+            if (!lastEmailText.trim()) {
                 resultContainer.textContent = 'Please paste some email text.';
                 resultContainer.className = '';
+                correctionContainer.style.display = 'none';
                 return;
             }
 
             try {
                 const response = await fetch('/predict', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email_text: emailText })
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email_text: lastEmailText })
                 });
 
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
 
                 const data = await response.json();
                 const prediction = data.prediction;
                 
                 resultContainer.textContent = `Prediction: ${prediction.toUpperCase()}`;
                 resultContainer.className = prediction;
+                correctionContainer.style.display = 'block'; // Show the correction buttons
 
             } catch (error) {
                 console.error('Error:', error);
                 resultContainer.textContent = 'Error classifying email.';
                 resultContainer.className = '';
+                correctionContainer.style.display = 'none';
+            }
+        }
+
+        async function learn(correctLabel) {
+            if (!lastEmailText) return;
+
+            try {
+                const response = await fetch('/learn', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email_text: lastEmailText,
+                        correct_label: correctLabel
+                    })
+                });
+
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                
+                const data = await response.json();
+                alert(data.message); // Give user feedback
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error updating the model.');
             }
         }
     </script>

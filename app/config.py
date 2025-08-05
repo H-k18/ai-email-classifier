@@ -9,3 +9,4 @@ class Config:
     # Define paths for the machine learning models
     CLASSIFIER_MODEL_PATH = os.path.join(BASE_DIR, '..', '/home/mnit2024/Documents/emailclassifierApplication/email_classifier.joblib')
     VECTORIZER_MODEL_PATH = os.path.join(BASE_DIR, '..', '/home/mnit2024/Documents/emailclassifierApplication/vectorizer.joblib')
+    

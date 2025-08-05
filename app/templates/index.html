@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Email Classifier</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; }
+        h1 { color: #2c3e50; }
+        textarea { width: 100%; height: 200px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; font-size: 16px; margin-bottom: 20px; box-sizing: border-box; }
+        button { background-color: #3498db; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
+        button:hover { background-color: #2980b9; }
+        #result-container { margin-top: 30px; padding: 20px; border-radius: 8px; font-size: 24px; font-weight: bold; transition: all 0.3s; }
+        .primary { background-color: #eafaf1; color: #2ecc71; }
+        .spam { background-color: #fbeee6; color: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>AI Email Classifier</h1>
+        <p>Paste the full raw text of an email below to classify it.</p>
+        <textarea id="emailText" placeholder="Paste raw email text here..."></textarea>
+        <button onclick="classifyEmail()">Classify Email</button>
+        <div id="result-container"></div>
+    </div>
+
+    <script>
+        async function classifyEmail() {
+            const emailText = document.getElementById('emailText').value;
+            const resultContainer = document.getElementById('result-container');
+            
+            if (!emailText.trim()) {
+                resultContainer.textContent = 'Please paste some email text.';
+                resultContainer.className = '';
+                return;
+            }
+
+            try {
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email_text: emailText })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const prediction = data.prediction;
+                
+                resultContainer.textContent = `Prediction: ${prediction.toUpperCase()}`;
+                resultContainer.className = prediction;
+
+            } catch (error) {
+                console.error('Error:', error);
+                resultContainer.textContent = 'Error classifying email.';
+                resultContainer.className = '';
+            }
+        }
+    </script>
+</body>
+</html>

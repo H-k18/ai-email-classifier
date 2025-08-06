@@ -1,0 +1,183 @@
+:root {
+    --primary-color: #4A90E2;
+    --background-gradient-start: #F8F9FA;
+    --background-gradient-end: #EAECEF;
+    --pane-background: #FFFFFF;
+    --border-color: #DFE7EF;
+    --text-color: #243B53;
+    --text-secondary-color: #627D98;
+    --hover-bg: #EBF2FA;
+    --danger-color: #e74c3c;
+    --success-color: #2ecc71;
+}
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    background-image: linear-gradient(to top, var(--background-gradient-end), var(--background-gradient-start));
+    color: var(--text-color);
+    font-size: 16px;
+}
+.email-app-container {
+    display: grid;
+    grid-template-columns: 260px 350px 1fr;
+    grid-template-rows: 64px 1fr;
+    height: 100vh;
+    grid-template-areas:
+        "header header header"
+        "folders email-list email-view";
+}
+.app-header {
+    grid-area: header;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: var(--pane-background);
+}
+.app-header .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.app-header .logo svg {
+    width: 32px;
+    height: 32px;
+}
+.app-header h1 {
+    font-size: 22px;
+    font-weight: 600;
+}
+.folders-pane {
+    grid-area: folders;
+    border-right: 1px solid var(--border-color);
+    padding: 24px 0;
+    background-color: var(--pane-background);
+}
+.folders-pane h3 {
+    padding: 0 24px;
+    margin: 0 0 16px 0;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--text-secondary-color);
+}
+.folder-list {
+    list-style-type: none;
+    padding: 0;
+    margin: 0;
+}
+.folder-list li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 24px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-weight: 500;
+}
+.folder-list li:hover {
+    background-color: var(--hover-bg);
+}
+.folder-list li.active {
+    background-color: var(--primary-color);
+    color: var(--pane-background);
+    font-weight: 600;
+}
+.folder-list li.active svg {
+    stroke: var(--pane-background);
+}
+.email-list-pane {
+    grid-area: email-list;
+    border-right: 1px solid var(--border-color);
+    overflow-y: auto;
+    background-color: #FBFCFD;
+}
+.email-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+}
+.email-item:hover {
+    background-color: var(--hover-bg);
+}
+.email-item.active {
+    background-color: #EBF2FA;
+    border-right: 3px solid var(--primary-color);
+}
+.email-item .from {
+    font-weight: 600;
+    font-size: 15px;
+}
+.email-item .subject {
+    color: var(--text-secondary-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: block;
+    margin-top: 4px;
+    font-size: 14px;
+}
+.email-view-pane {
+    grid-area: email-view;
+    padding: 32px;
+    overflow-y: auto;
+    background-color: var(--pane-background);
+}
+.email-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+.email-header h2 {
+    margin: 0;
+    font-size: 24px;
+}
+.email-category-tag {
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    background-color: #ecf0f1;
+    color: #7f8c8d;
+}
+.email-body {
+    line-height: 1.7;
+    white-space: pre-wrap;
+    font-size: 15px;
+}
+.ai-actions {
+    margin-top: 32px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border-color);
+}
+.ai-prediction {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+    font-weight: 600;
+    text-align: center;
+}
+.ai-prediction.primary, .ai-prediction.corrected.primary { background-color: #eafaf1; color: var(--success-color); }
+.ai-prediction.spam, .ai-prediction.corrected.spam { background-color: #fbeee6; color: var(--danger-color); }
+.ai-prediction.corrected { background-color: #e0e0e0; color: #333; }
+.correction-controls button {
+    background-color: #627D98;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    font-size: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    margin: 5px;
+    transition: background-color 0.2s;
+}
+.correction-controls button:hover {
+    background-color: var(--text-color);
+}
+.correction-controls input {
+    padding: 8px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}

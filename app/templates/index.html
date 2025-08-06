@@ -4,98 +4,32 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Email Classifier</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f6; color: #333; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .container { background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 600px; text-align: center; }
-        h1 { color: #2c3e50; }
-        textarea { width: 100%; height: 200px; border-radius: 8px; border: 1px solid #ccc; padding: 10px; font-size: 16px; margin-bottom: 20px; box-sizing: border-box; }
-        .main-button { background-color: #3498db; color: white; border: none; padding: 15px 30px; font-size: 18px; border-radius: 8px; cursor: pointer; transition: background-color 0.3s; }
-        .main-button:hover { background-color: #2980b9; }
-        #result-container { margin-top: 30px; padding: 20px; border-radius: 8px; font-size: 24px; font-weight: bold; transition: all 0.3s; }
-        .primary { background-color: #eafaf1; color: #2ecc71; }
-        .spam { background-color: #fbeee6; color: #e74c3c; }
-        #correction-buttons { margin-top: 15px; display: none; } /* Initially hidden */
-        .correction-button { background-color: #95a5a6; color: white; border: none; padding: 10px 20px; font-size: 14px; border-radius: 8px; cursor: pointer; margin: 0 10px; }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>AI Email Classifier</h1>
-        <p>Paste the full raw text of an email below to classify it.</p>
-        <textarea id="emailText" placeholder="Paste raw email text here..."></textarea>
-        <button class="main-button" onclick="classifyEmail()">Classify Email</button>
-        <div id="result-container"></div>
-        <!-- New Correction Buttons -->
-        <div id="correction-buttons">
-            <p>Is this wrong?</p>
-            <button class="correction-button" onclick="learn('primary')">Correct: It's Primary</button>
-            <button class="correction-button" onclick="learn('spam')">Correct: It's Spam</button>
-        </div>
+    <div class="email-app-container">
+        <header class="app-header">
+            <div class="logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                    <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
+                <h1>AI Classifier</h1>
+            </div>
+        </header>
+
+        <nav class="folders-pane">
+            <h3>Folders</h3>
+            <ul id="folder-list" class="folder-list"></ul>
+        </nav>
+
+        <aside class="email-list-pane" id="email-list-pane"></aside>
+
+        <main class="email-view-pane" id="email-view-pane">
+            <p>Select an email to view its content.</p>
+        </main>
     </div>
 
-    <script>
-        // Store the last email text globally for the learn function
-        let lastEmailText = "";
-
-        async function classifyEmail() {
-            lastEmailText = document.getElementById('emailText').value; // Save the text
-            const resultContainer = document.getElementById('result-container');
-            const correctionContainer = document.getElementById('correction-buttons');
-            
-            if (!lastEmailText.trim()) {
-                resultContainer.textContent = 'Please paste some email text.';
-                resultContainer.className = '';
-                correctionContainer.style.display = 'none';
-                return;
-            }
-
-            try {
-                const response = await fetch('/predict', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email_text: lastEmailText })
-                });
-
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-
-                const data = await response.json();
-                const prediction = data.prediction;
-                
-                resultContainer.textContent = `Prediction: ${prediction.toUpperCase()}`;
-                resultContainer.className = prediction;
-                correctionContainer.style.display = 'block'; // Show the correction buttons
-
-            } catch (error) {
-                console.error('Error:', error);
-                resultContainer.textContent = 'Error classifying email.';
-                resultContainer.className = '';
-                correctionContainer.style.display = 'none';
-            }
-        }
-
-        async function learn(correctLabel) {
-            if (!lastEmailText) return;
-
-            try {
-                const response = await fetch('/learn', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        email_text: lastEmailText,
-                        correct_label: correctLabel
-                    })
-                });
-
-                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
-                
-                const data = await response.json();
-                alert(data.message); // Give user feedback
-
-            } catch (error) {
-                console.error('Error:', error);
-                alert('Error updating the model.');
-            }
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>

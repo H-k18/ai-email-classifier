@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV /home/mnit2024/Documents/emailclassifierApplication/my_project_env
+set -gx VIRTUAL_ENV /home/ubantu/Documents/MNIT5001/ai-email-classifier/my_project_env
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

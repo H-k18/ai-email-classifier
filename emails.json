@@ -1,0 +1,37 @@
+[
+    {
+        "id": 1,
+        "from": "Google",
+        "subject": "Security alert for your linked account",
+        "body": "A new sign-in was detected on a device. If this was you, no action is needed. If not, please secure your account immediately.",
+        "category": "primary"
+    },
+    {
+        "id": 2,
+        "from": "Promotions",
+        "subject": "\ud83d\udd25 50% off all summer items!",
+        "body": "Don't miss out on our biggest sale of the season! Everything must go. Click here to shop now and save big on all your summer favorites.",
+        "category": "spam"
+    },
+    {
+        "id": 3,
+        "from": "Jane Doe",
+        "subject": "Project Update",
+        "body": "Hi team,\n\nJust wanted to give a quick update on the project timeline. We are currently on track to meet the Q3 deadline.\n\nLet me know if you have any questions.\n\nThanks,\nJane",
+        "category": "primary"
+    },
+    {
+        "id": 4,
+        "from": "Recruiter",
+        "subject": "New Opportunity: Software Developer at TechCorp",
+        "body": "We came across your profile and were very impressed with your experience. We have an opening for a Senior Software Developer that seems like a perfect fit. Would you be open to a quick chat next week?",
+        "category": "job postings"
+    },
+    {
+        "id": 5,
+        "from": "Lottery Winner",
+        "subject": "Congratulations! You have won!",
+        "body": "You have been selected as the lucky winner of our grand prize of $2,000,000. To claim your prize, please provide your bank details and a small processing fee.",
+        "category": "spam"
+    }
+]

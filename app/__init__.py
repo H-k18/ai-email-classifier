@@ -11,13 +11,14 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # Initialize Services
+    # --- Initialize a single instance of the service ---
+    # This ensures the same object, with its learned memory, is used for all requests.
     app.predictor_service = PredictorService(
         model_path=app.config['CLASSIFIER_MODEL_PATH'],
         vectorizer_path=app.config['VECTORIZER_MODEL_PATH']
     )
 
-    # Register Blueprints (Routes)
+    # --- Register Blueprints (Routes) ---
     app.register_blueprint(main_bp)
 
     return app

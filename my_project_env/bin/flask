@@ -1,4 +1,4 @@
-#!/home/mnit2024/Documents/emailclassifierApplication/my_project_env/bin/python3
+#!/home/ubantu/Documents/MNIT5001/ai-email-classifier/my_project_env/bin/python3
 # -*- coding: utf-8 -*-
 import re
 import sys

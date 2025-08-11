@@ -1,0 +1,16 @@
+# Virtual Environment
+my_project_env/
+venv/
+env/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE and OS files
+.idea/
+.vscode/
+.DS_Store
+
+# Secret credentials file
+.env

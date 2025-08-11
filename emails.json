@@ -33,5 +33,12 @@
         "subject": "Congratulations! You have won!",
         "body": "You have been selected as the lucky winner of our grand prize of $2,000,000. To claim your prize, please provide your bank details and a small processing fee.",
         "category": "spam"
+    },
+    {
+        "id": 6,
+        "from": "harsha konduru <harshakonduru950@gmail.com>",
+        "subject": "Assignment last date submit",
+        "body": "Hey buddy,\r\n\r\nToday is the last date to submit the assignment of machine learning. So\r\nDon't miss the date.\r\n",
+        "category": "assign"
     }
 ]

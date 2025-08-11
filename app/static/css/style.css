@@ -181,3 +181,29 @@ body {
     border-radius: 8px;
     border: 1px solid #ccc;
 }
+
+.folder-list li {
+    justify-content: space-between; /* Pushes the delete icon to the far right */
+}
+
+.delete-btn {
+    visibility: hidden; /* Hide the delete button by default */
+    opacity: 0.5;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    padding: 4px;
+    border-radius: 50%;
+}
+
+.folder-list li:hover .delete-btn {
+    visibility: visible; /* Show the delete button when hovering over the folder item */
+}
+
+.delete-btn:hover {
+    opacity: 1;
+    background-color: var(--border-color);
+}
+
+.delete-btn:hover svg {
+    stroke: var(--danger-color);
+}

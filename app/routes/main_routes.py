@@ -1,5 +1,6 @@
 # app/routes/main_routes.py
 from flask import Blueprint, render_template, request, jsonify
+from flask_login import login_required # Import login_required
 from app.ml_service.model_provider import predictor_instance
 import json
 import os
@@ -30,10 +31,12 @@ def write_json(path, data):
 
 # --- MAIN ROUTES ---
 @main_bp.route('/')
+@login_required  # --- THIS IS THE FIX --- This line protects the page
 def index():
     return render_template('index.html')
 
 @main_bp.route('/get_emails', methods=['GET'])
+@login_required # Also protect API routes
 def get_emails():
     # Provide default email data if the file is missing
     default_emails = [
@@ -44,12 +47,14 @@ def get_emails():
     return jsonify(emails)
 
 @main_bp.route('/predict', methods=['POST'])
+@login_required # Also protect API routes
 def predict():
     data = request.get_json()
     prediction = predictor_instance.predict(data['email_text'])
     return jsonify({'prediction': prediction})
 
 @main_bp.route('/learn', methods=['POST'])
+@login_required # Also protect API routes
 def learn():
     data = request.get_json()
     email_id = data['email_id']
@@ -72,12 +77,14 @@ def learn():
     return jsonify({'message': f"Model updated and correction saved permanently."})
 
 @main_bp.route('/get_categories', methods=['GET'])
+@login_required # Also protect API routes
 def get_categories():
     default_categories = ["primary", "spam"]
     categories = read_json(CATEGORIES_DB_PATH, default_categories)
     return jsonify({'categories': categories})
 
 @main_bp.route('/delete_category', methods=['POST'])
+@login_required # Also protect API routes
 def delete_category():
     data = request.get_json()
     category_to_delete = data['category']

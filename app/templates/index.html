@@ -16,6 +16,18 @@
                 </svg>
                 <h1>AI Classifier</h1>
             </div>
+            
+            <!-- --- THIS IS THE UPDATED PROFILE SECTION --- -->
+            <div class="profile-section" id="profile-section">
+                <div class="avatar" id="avatar">{{ current_user.username[0].upper() }}</div>
+                <span class="username">{{ current_user.username }}</span>
+                <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                
+                <div class="profile-dropdown" id="profile-dropdown">
+                    <a href="{{ url_for('auth_bp.settings') }}">Settings</a> <!-- THIS IS THE CHANGE -->
+                    <a href="{{ url_for('auth_bp.logout') }}">Logout</a>
+                </div>
+            </div>
         </header>
 
         <nav class="folders-pane">

@@ -1,6 +1,6 @@
 # app/routes/main_routes.py
 from flask import Blueprint, render_template, request, jsonify
-from flask_login import login_required # Import login_required
+from flask_login import login_required, current_user # Import current_user
 from app.ml_service.model_provider import predictor_instance
 import json
 import os
@@ -33,7 +33,7 @@ def write_json(path, data):
 @main_bp.route('/')
 @login_required  # --- THIS IS THE FIX --- This line protects the page
 def index():
-    return render_template('index.html')
+    return render_template('index.html', user = current_user)
 
 @main_bp.route('/get_emails', methods=['GET'])
 @login_required # Also protect API routes

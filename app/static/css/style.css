@@ -207,3 +207,70 @@ body {
 .delete-btn:hover svg {
     stroke: var(--danger-color);
 }
+
+.app-header {
+    justify-content: space-between;
+}
+
+.profile-section {
+    position: relative; /* Needed for the dropdown positioning */
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.profile-section:hover {
+    background-color: var(--hover-bg);
+}
+
+.profile-section .avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: var(--primary-color);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.profile-section .username {
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.profile-section .chevron {
+    stroke: var(--text-secondary-color);
+}
+
+.profile-dropdown {
+    display: none; /* Hidden by default */
+    position: absolute;
+    top: 55px;
+    right: 0;
+    background-color: var(--pane-background);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    width: 180px;
+    overflow: hidden;
+    z-index: 10;
+}
+
+.profile-dropdown a {
+    display: block;
+    padding: 12px 16px;
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 14px;
+}
+
+.profile-dropdown a:hover {
+    background-color: var(--hover-bg);
+}

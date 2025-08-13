@@ -211,3 +211,23 @@ async function deleteCategory(category) {
         console.error('Error deleting category:', error);
     }
 }
+
+// --- PROFILE DROPDOWN LOGIC ---
+document.addEventListener('DOMContentLoaded', function() {
+    const profileSection = document.getElementById('profile-section');
+    const dropdown = document.getElementById('profile-dropdown');
+
+    if (profileSection && dropdown) {
+        profileSection.addEventListener('click', function(event) {
+            event.stopPropagation(); // Prevents the window click event from firing immediately
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        });
+
+        // Close the dropdown if the user clicks outside of it
+        window.addEventListener('click', function(event) {
+            if (dropdown.style.display === 'block') {
+                dropdown.style.display = 'none';
+            }
+        });
+    }
+});

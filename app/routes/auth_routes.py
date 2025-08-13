@@ -1,13 +1,15 @@
 # app/routes/auth_routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import login_user, logout_user, login_required
+# --- THIS IS THE FIX --- Import current_user
+from flask_login import login_user, logout_user, login_required, current_user 
 from flask_mail import Message
-from app import mail  # Import the mail instance
+from app import mail
 from app.user_model import User
 import json
 import os
 import random
+from app.encryption_service import encrypt_data, decrypt_data
 
 auth_bp = Blueprint('auth_bp', __name__)
 
@@ -105,3 +107,59 @@ def verify_post():
 def logout():
     logout_user()
     return redirect(url_for('auth_bp.login'))
+from app.encryption_service import encrypt_data, decrypt_data # Import encryption functions
+
+# --- SETTINGS ROUTES ---
+@auth_bp.route('/settings')
+@login_required
+def settings():
+    with open(USERS_DB_PATH, 'r') as f:
+        users = json.load(f)
+    
+    user_data = next((user for user in users if user['id'] == current_user.id), None)
+    
+    saved_email = decrypt_data(user_data.get("encrypted_email", ""))
+    email_address_to_display = saved_email if saved_email else current_user.username
+
+    email_settings = {
+        "imap_server": user_data.get("imap_server", "imap.gmail.com"),
+        "email_address": email_address_to_display
+    }
+    return render_template('settings.html', settings=email_settings)
+
+@auth_bp.route('/settings', methods=['POST'])
+@login_required
+def settings_post():
+    # --- THIS IS THE UPDATED LOGIC ---
+    form_action = request.form.get('action')
+    
+    with open(USERS_DB_PATH, 'r') as f:
+        users = json.load(f)
+    
+    user_data = next((user for user in users if user['id'] == current_user.id), None)
+
+    if form_action == 'update_email':
+        user_data['imap_server'] = request.form.get('imap_server')
+        user_data['encrypted_email'] = encrypt_data(request.form.get('email_address'))
+        app_password = request.form.get('app_password')
+        if app_password:
+            user_data['encrypted_password'] = encrypt_data(app_password)
+        flash('Your email settings have been saved successfully.')
+
+    elif form_action == 'change_password':
+        current_password = request.form.get('current_password')
+        new_password = request.form.get('new_password')
+        confirm_password = request.form.get('confirm_password')
+
+        if not check_password_hash(user_data['password'], current_password):
+            flash('Current password is incorrect.')
+        elif new_password != confirm_password:
+            flash('New passwords do not match.')
+        else:
+            user_data['password'] = generate_password_hash(new_password, method='pbkdf2:sha256')
+            flash('Your password has been changed successfully.')
+
+    with open(USERS_DB_PATH, 'w') as f:
+        json.dump(users, f, indent=4)
+
+    return redirect(url_for('auth_bp.settings'))

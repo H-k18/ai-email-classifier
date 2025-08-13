@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Settings - AI Classifier</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth_style.css') }}">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-header">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            </svg>
+            <h1>Settings</h1>
+        </div>
+
+        {% with messages = get_flashed_messages() %}
+        {% if messages %}
+            <div class="flash-message">{{ messages[0] }}</div>
+        {% endif %}
+        {% endwith %}
+
+        <!-- TAB BUTTONS -->
+        <div class="settings-tabs">
+            <button class="tab-button active" onclick="openTab('email')">Email Polling</button>
+            <button class="tab-button" onclick="openTab('password')">Change Password</button>
+        </div>
+
+        <!-- EMAIL POLLING CONTENT -->
+        <div id="email" class="tab-content">
+            <form method="POST" action="/settings">
+                <input type="hidden" name="action" value="update_email">
+                <div class="form-group">
+                    <label for="imap_server">IMAP Server</label>
+                    <input type="text" id="imap_server" name="imap_server" value="{{ settings.imap_server }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="email_address">Email Address</label>
+                    <input type="email" id="email_address" name="email_address" value="{{ settings.email_address }}" required>
+                </div>
+                <div class="form-group">
+                    <label for="app_password">16-Digit Mail Access Password</label>
+                    <input type="password" id="app_password" name="app_password" placeholder="Leave blank to keep current password">
+                    <small>We can only retrieve your mail if you provide the correct App Password. <a href="https://support.google.com/accounts/answer/185833?hl=en" target="_blank">How to get one from Gmail.</a></small>
+                </div>
+                <button class="auth-button" type="submit">Save Email Settings</button>
+            </form>
+        </div>
+
+        <!-- CHANGE PASSWORD CONTENT -->
+        <div id="password" class="tab-content" style="display:none;">
+            <form method="POST" action="/settings">
+                <input type="hidden" name="action" value="change_password">
+                <div class="form-group">
+                    <label for="current_password">Current Password</label>
+                    <input type="password" id="current_password" name="current_password" required>
+                </div>
+                <div class="form-group">
+                    <label for="new_password">New Password</label>
+                    <input type="password" id="new_password" name="new_password" required>
+                </div>
+                <div class="form-group">
+                    <label for="confirm_password">Confirm New Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" required>
+                </div>
+                <button class="auth-button" type="submit">Change Password</button>
+            </form>
+        </div>
+
+        <p class="auth-link"><a href="{{ url_for('main_bp.index') }}">Back to App</a></p>
+    </div>
+
+    <script>
+        function openTab(tabName) {
+            // Hide all tab content
+            var i, tabcontent, tablinks;
+            tabcontent = document.getElementsByClassName("tab-content");
+            for (i = 0; i < tabcontent.length; i++) {
+                tabcontent[i].style.display = "none";
+            }
+
+            // Deactivate all tab buttons
+            tablinks = document.getElementsByClassName("tab-button");
+            for (i = 0; i < tablinks.length; i++) {
+                tablinks[i].className = tablinks[i].className.replace(" active", "");
+            }
+
+            // Show the selected tab content and activate its button
+            document.getElementById(tabName).style.display = "block";
+            event.currentTarget.className += " active";
+        }
+    </script>
+</body>
+</html>

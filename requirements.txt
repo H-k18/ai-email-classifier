@@ -4,3 +4,5 @@ pandas
 nltk
 joblib
 cryptography
+Flask-SQLAlchemy
+Flask-Migrate

@@ -3,7 +3,7 @@ let emails = [];
 let activeEmailId = null;
 let activeCategory = 'all';
 
-// --- ICONS ---
+// --- ICONS (No changes) ---
 const icons = {
     all: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>`,
     primary: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L8.6 3.3a2 2 0 0 0-1.7-1H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h16z"></path></svg>`,
@@ -62,11 +62,9 @@ async function renderFolders() {
             const li = document.createElement('li');
             const icon = icons[category] || icons.default;
             let deleteButtonHTML = '';
-            
             if (category !== 'primary' && category !== 'spam') {
                 deleteButtonHTML = `<span class="delete-btn" onclick="event.stopPropagation(); deleteCategory('${category}');">${icons.delete}</span>`;
             }
-            
             li.innerHTML = `<div>${icon} ${category.charAt(0).toUpperCase() + category.slice(1)}</div> ${deleteButtonHTML}`;
             li.dataset.category = category;
             li.onclick = () => selectFolder(category);
@@ -88,7 +86,18 @@ function selectFolder(category) {
 function renderEmailList() {
     const emailListPane = document.getElementById('email-list-pane');
     emailListPane.innerHTML = '';
-    const filteredEmails = activeCategory === 'all' ? emails : emails.filter(email => email.category === activeCategory);
+    
+    // --- THIS IS THE IMPROVEMENT ---
+    let filteredEmails;
+    if (activeCategory === 'all') {
+        filteredEmails = emails;
+    } else if (activeCategory === 'primary') {
+        // Show all emails that are NOT spam
+        filteredEmails = emails.filter(email => email.category !== 'spam');
+    } else {
+        // For 'spam' or custom folders, show only that specific category
+        filteredEmails = emails.filter(email => email.category === activeCategory);
+    }
 
     filteredEmails.forEach(email => {
         const item = document.createElement('div');
@@ -188,7 +197,6 @@ async function learnAndUpdate(emailId, correctLabel) {
     } catch (error) { console.error('Error:', error); }
 }
 
-// --- THIS IS THE MISSING FUNCTION ---
 async function deleteCategory(category) {
     if (!confirm(`Are you sure you want to delete the "${category}" folder? Emails in this folder will be moved to Primary.`)) {
         return;
@@ -211,23 +219,3 @@ async function deleteCategory(category) {
         console.error('Error deleting category:', error);
     }
 }
-
-// --- PROFILE DROPDOWN LOGIC ---
-document.addEventListener('DOMContentLoaded', function() {
-    const profileSection = document.getElementById('profile-section');
-    const dropdown = document.getElementById('profile-dropdown');
-
-    if (profileSection && dropdown) {
-        profileSection.addEventListener('click', function(event) {
-            event.stopPropagation(); // Prevents the window click event from firing immediately
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-        });
-
-        // Close the dropdown if the user clicks outside of it
-        window.addEventListener('click', function(event) {
-            if (dropdown.style.display === 'block') {
-                dropdown.style.display = 'none';
-            }
-        });
-    }
-});

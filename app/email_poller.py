@@ -2,9 +2,9 @@ import imaplib
 import email
 from email.header import decode_header
 import os
-import json
-
-EMAILS_DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'emails.json')
+from app import create_app, db
+from app.models import User, Email, Category
+from app.encryption_service import decrypt_data
 
 def get_decoded_text(part):
     """A robust function to decode email parts."""
@@ -24,87 +24,93 @@ def get_decoded_text(part):
 
 def fetch_new_emails():
     """
-    Connects to an IMAP email server, fetches unread emails,
-    and adds them to the emails.json database.
+    Fetches new emails for ALL users who have provided credentials
+    and saves them to the database.
     """
-    IMAP_SERVER = "imap.gmail.com"
-    EMAIL_USER = os.environ.get('EMAIL_USER')
-    EMAIL_PASS = os.environ.get('EMAIL_PASS')
-
-    if not EMAIL_USER or not EMAIL_PASS:
-        print("Email credentials not set. Skipping email fetch.")
-        return
-
-    print("Checking for new emails...")
-    try:
-        mail = imaplib.IMAP4_SSL(IMAP_SERVER)
-        mail.login(EMAIL_USER, EMAIL_PASS)
-        mail.select("inbox")
-
-        status, messages = mail.search(None, "(UNSEEN)")
-        email_ids = messages[0].split()
-
-        if not email_ids:
-            print("No new emails found.")
+    app = create_app()
+    with app.app_context():
+        # Find all users who have saved their email credentials
+        users_to_poll = User.query.filter(User.encrypted_password != None).all()
+        
+        if not users_to_poll:
+            print("No users with polling credentials configured. Skipping email fetch.")
             return
 
-        print(f"Found {len(email_ids)} new emails.")
-        
-        with open(EMAILS_DB_PATH, 'r') as f:
-            db_emails = json.load(f)
-        
-        max_id = max([e['id'] for e in db_emails]) if db_emails else 0
-        newly_added_emails = 0
+        print(f"Polling emails for {len(users_to_poll)} user(s)...")
 
-        for email_id in email_ids:
-            # --- THIS IS THE FIX ---
-            # Wrap each email in a try/except block to isolate errors.
+        for user in users_to_poll:
+            print(f"Checking for new emails for user: {user.username}")
             try:
-                status, msg_data = mail.fetch(email_id, "(RFC822)")
-                for response_part in msg_data:
-                    if isinstance(response_part, tuple):
-                        msg = email.message_from_bytes(response_part[1])
-                        
-                        subject, encoding = decode_header(msg["Subject"])[0]
-                        if isinstance(subject, bytes):
-                            subject = subject.decode(encoding if encoding else "latin-1", 'ignore')
-                        
-                        from_, encoding = decode_header(msg.get("From"))[0]
-                        if isinstance(from_, bytes):
-                            from_ = from_.decode(encoding if encoding else "latin-1", 'ignore')
+                # Decrypt the user's credentials
+                imap_server = user.imap_server
+                email_user = decrypt_data(user.encrypted_email)
+                email_pass = decrypt_data(user.encrypted_password)
 
-                        body = ""
-                        if msg.is_multipart():
-                            for part in msg.walk():
-                                if part.get_content_type() == "text/plain":
-                                    body = get_decoded_text(part)
-                                    break
-                        else:
-                            body = get_decoded_text(msg)
-                        
-                        max_id += 1
-                        new_email = {
-                            "id": max_id,
-                            "from": from_,
-                            "subject": subject,
-                            "body": body,
-                            "category": "primary"
-                        }
-                        db_emails.append(new_email)
-                        newly_added_emails += 1
+                if not imap_server or not email_user or not email_pass:
+                    continue
+
+                mail = imaplib.IMAP4_SSL(imap_server)
+                mail.login(email_user, email_pass)
+                mail.select("inbox")
+
+                status, messages = mail.search(None, "(UNSEEN)")
+                email_ids = messages[0].split()
+
+                if not email_ids:
+                    print(f"No new emails found for {user.username}.")
+                    continue
+
+                print(f"Found {len(email_ids)} new emails for {user.username}.")
+                
+                # Get the user's default 'primary' category
+                primary_category = Category.query.filter_by(name='primary', user_id=user.id).first()
+                if not primary_category:
+                    print(f"Could not find a primary category for {user.username}. Skipping.")
+                    continue
+
+                for email_id in email_ids:
+                    try:
+                        status, msg_data = mail.fetch(email_id, "(RFC822)")
+                        for response_part in msg_data:
+                            if isinstance(response_part, tuple):
+                                msg = email.message_from_bytes(response_part[1])
+                                
+                                subject, encoding = decode_header(msg["Subject"])[0]
+                                if isinstance(subject, bytes):
+                                    subject = subject.decode(encoding if encoding else "latin-1", 'ignore')
+                                
+                                from_, encoding = decode_header(msg.get("From"))[0]
+                                if isinstance(from_, bytes):
+                                    from_ = from_.decode(encoding if encoding else "latin-1", 'ignore')
+
+                                body = ""
+                                if msg.is_multipart():
+                                    for part in msg.walk():
+                                        if part.get_content_type() == "text/plain":
+                                            body = get_decoded_text(part)
+                                            break
+                                else:
+                                    body = get_decoded_text(msg)
+                                
+                                # Create a new Email object and save it to the database
+                                new_email = Email(
+                                    sender=from_,
+                                    subject=subject,
+                                    body=body,
+                                    owner=user,
+                                    category=primary_category
+                                )
+                                db.session.add(new_email)
+                    except Exception as e:
+                        print(f"Could not process email ID {email_id.decode()} for user {user.username}: {e}. Skipping.")
+                        continue
+                
+                db.session.commit()
+                print(f"Successfully added {len(email_ids)} new emails for {user.username}.")
+
             except Exception as e:
-                print(f"Could not process email ID {email_id.decode()}: {e}. Skipping.")
-                continue # Move to the next email
-
-        with open(EMAILS_DB_PATH, 'w') as f:
-            json.dump(db_emails, f, indent=4)
-        
-        if newly_added_emails > 0:
-            print(f"Successfully added {newly_added_emails} new emails to the database.")
-
-    except Exception as e:
-        print(f"Failed to fetch emails: {e}")
-    finally:
-        if 'mail' in locals() and mail.state == 'SELECTED':
-            mail.close()
-            mail.logout()
+                print(f"Failed to fetch emails for user {user.username}: {e}")
+            finally:
+                if 'mail' in locals() and mail.state == 'SELECTED':
+                    mail.close()
+                    mail.logout()

@@ -3,6 +3,14 @@ scikit-learn
 pandas
 nltk
 joblib
+Flask-Login
+Werkzeug
+Flask-Mail
+APScheduler
+python-dotenv
 cryptography
 Flask-SQLAlchemy
 Flask-Migrate
+pytest
+pytest-flask
+pytest-mock

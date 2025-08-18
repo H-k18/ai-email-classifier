@@ -33,6 +33,7 @@ body {
     padding: 0 24px;
     border-bottom: 1px solid var(--border-color);
     background-color: var(--pane-background);
+    justify-content: space-between;
 }
 .app-header .logo {
     display: flex;
@@ -74,6 +75,7 @@ body {
     cursor: pointer;
     transition: background-color 0.2s;
     font-weight: 500;
+    justify-content: space-between;
 }
 .folder-list li:hover {
     background-color: var(--hover-bg);
@@ -101,7 +103,73 @@ body {
     background-color: var(--hover-bg);
 }
 .email-item.active {
-    background-color: #EBF2FA;
+    background-color: #EBF2FA;/* --- UPDATED HEADER STYLES --- */
+.app-header {
+    justify-content: space-between; /* Pushes logo and right-side content apart */
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px; /* Space between search and profile */
+}
+
+.search-bar {
+    /* flex-grow is removed */
+    margin: 0;
+}
+
+.search-bar input {
+    width: 100%;
+    /* --- THIS IS THE CHANGE --- */
+    max-width: 250px; /* Makes the search bar smaller */
+    padding: 10px 16px;
+    font-size: 14px; /* Slightly smaller font */
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background-color: var(--hover-bg);
+    transition: all 0.2s;
+}
+
+.search-bar input:focus {
+    outline: none;
+    background-color: #fff;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+}
+
+/* --- REFRESH BUTTON STYLES --- */
+.folders-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    margin-bottom: 16px;
+}
+.folders-header h3 {
+    padding: 0;
+    margin: 0;
+}
+.refresh-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.refresh-btn:hover {
+    background-color: var(--hover-bg);
+}
+.refresh-btn.loading svg {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+}
     border-right: 3px solid var(--primary-color);
 }
 .email-item .from {
@@ -181,39 +249,8 @@ body {
     border-radius: 8px;
     border: 1px solid #ccc;
 }
-
-.folder-list li {
-    justify-content: space-between; /* Pushes the delete icon to the far right */
-}
-
-.delete-btn {
-    visibility: hidden; /* Hide the delete button by default */
-    opacity: 0.5;
-    cursor: pointer;
-    transition: opacity 0.2s;
-    padding: 4px;
-    border-radius: 50%;
-}
-
-.folder-list li:hover .delete-btn {
-    visibility: visible; /* Show the delete button when hovering over the folder item */
-}
-
-.delete-btn:hover {
-    opacity: 1;
-    background-color: var(--border-color);
-}
-
-.delete-btn:hover svg {
-    stroke: var(--danger-color);
-}
-
-.app-header {
-    justify-content: space-between;
-}
-
 .profile-section {
-    position: relative; /* Needed for the dropdown positioning */
+    position: relative;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -222,11 +259,9 @@ body {
     border-radius: 8px;
     transition: background-color 0.2s;
 }
-
 .profile-section:hover {
     background-color: var(--hover-bg);
 }
-
 .profile-section .avatar {
     width: 32px;
     height: 32px;
@@ -239,18 +274,15 @@ body {
     font-weight: 600;
     font-size: 14px;
 }
-
 .profile-section .username {
     font-weight: 600;
     color: var(--text-color);
 }
-
 .profile-section .chevron {
     stroke: var(--text-secondary-color);
 }
-
 .profile-dropdown {
-    display: none; /* Hidden by default */
+    display: none;
     position: absolute;
     top: 55px;
     right: 0;
@@ -262,7 +294,6 @@ body {
     overflow: hidden;
     z-index: 10;
 }
-
 .profile-dropdown a {
     display: block;
     padding: 12px 16px;
@@ -270,7 +301,153 @@ body {
     text-decoration: none;
     font-size: 14px;
 }
-
 .profile-dropdown a:hover {
     background-color: var(--hover-bg);
+}
+.delete-btn {
+    visibility: hidden;
+    opacity: 0.5;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    padding: 4px;
+    border-radius: 50%;
+}
+.folder-list li:hover .delete-btn {
+    visibility: visible;
+}
+.delete-btn:hover {
+    opacity: 1;
+    background-color: var(--border-color);
+}
+.delete-btn:hover svg {
+    stroke: var(--danger-color);
+}
+.search-bar {
+    flex-grow: 1;
+    margin: 0 40px;
+}
+.search-bar input {
+    width: 100%;
+    max-width: 600px;
+    padding: 10px 16px;
+    font-size: 16px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background-color: var(--hover-bg);
+    transition: all 0.2s;
+}
+.search-bar input:focus {
+    outline: none;
+    background-color: #fff;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+}
+/* --- UPDATED HEADER STYLES --- */
+.app-header {
+    justify-content: space-between; /* Pushes logo and right-side content apart */
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px; /* Space between search and profile */
+}
+
+.search-bar {
+    /* flex-grow is removed */
+    margin: 0;
+}
+
+.search-bar input {
+    width: 100%;
+    /* --- THIS IS THE CHANGE --- */
+    max-width: 250px; /* Makes the search bar smaller */
+    padding: 10px 16px;
+    font-size: 14px; /* Slightly smaller font */
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background-color: var(--hover-bg);
+    transition: all 0.2s;
+}
+
+.search-bar input:focus {
+    outline: none;
+    background-color: #fff;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2);
+}
+
+/* --- REFRESH BUTTON STYLES --- */
+.folders-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 24px;
+    margin-bottom: 16px;
+}
+.folders-header h3 {
+    padding: 0;
+    margin: 0;
+}
+.refresh-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.refresh-btn:hover {
+    background-color: var(--hover-bg);
+}
+.refresh-btn.loading svg {
+    animation: spin 1s linear infinite;
+}
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(-360deg); }
+}
+.email-list-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+    background-color: #FBFCFD;
+}
+
+#select-all-checkbox {
+    margin-right: 16px;
+}
+
+.bulk-actions-toolbar {
+    display: none; /* Hidden by default */
+}
+
+.bulk-actions-toolbar button {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.email-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.email-item-details {
+    flex-grow: 1;
+}
+
+.email-body-iframe {
+    width: 100%;
+    height: 60vh; /* Give it a good default height */
+    border: none;
 }

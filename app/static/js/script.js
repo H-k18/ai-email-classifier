@@ -2,8 +2,9 @@
 let emails = [];
 let activeEmailId = null;
 let activeCategory = 'all';
+let selectedEmailIds = new Set();
 
-// --- ICONS (No changes) ---
+// --- ICONS ---
 const icons = {
     all: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"></path><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg>`,
     primary: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L8.6 3.3a2 2 0 0 0-1.7-1H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h16z"></path></svg>`,
@@ -12,12 +13,36 @@ const icons = {
     delete: `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="delete-icon"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`
 };
 
-// --- INITIALIZATION ---
-window.onload = async function() {
-    await fetchAndRenderAll();
-};
+// --- INITIALIZATION & EVENT LISTENERS ---
+document.addEventListener('DOMContentLoaded', function() {
+    initializePage();
 
-async function fetchAndRenderAll() {
+    const searchInput = document.getElementById('search-input');
+    searchInput.addEventListener('input', handleSearch);
+
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    selectAllCheckbox.addEventListener('change', handleSelectAll);
+
+    const bulkMoveBtn = document.getElementById('bulk-move-btn');
+    bulkMoveBtn.addEventListener('click', handleBulkMove);
+
+    const refreshBtn = document.getElementById('refresh-btn');
+    refreshBtn.addEventListener('click', handleRefreshClick);
+
+    const profileSection = document.getElementById('profile-section');
+    const dropdown = document.getElementById('profile-dropdown');
+    if (profileSection && dropdown) {
+        profileSection.addEventListener('click', (event) => {
+            event.stopPropagation();
+            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
+        });
+        window.addEventListener('click', () => {
+            if (dropdown.style.display === 'block') dropdown.style.display = 'none';
+        });
+    }
+});
+
+async function initializePage() {
     await fetchEmails();
     await renderFolders();
     renderEmailList();
@@ -31,7 +56,7 @@ async function fetchEmails() {
     } catch (error) { console.error('Error fetching emails:', error); }
 }
 
-// --- DRAG & DROP HANDLERS ---
+// --- EVENT HANDLERS ---
 function handleDragStart(e) { e.dataTransfer.setData('text/plain', e.target.dataset.id); }
 function handleDragOver(e) { e.preventDefault(); }
 function handleDrop(e) {
@@ -42,6 +67,87 @@ function handleDrop(e) {
     if (email && targetFolder && targetFolder !== 'all') {
         learnAndUpdate(email.id, targetFolder);
     }
+}
+
+let searchDebounceTimer;
+function handleSearch(event) {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(async () => {
+        const query = event.target.value.trim();
+        if (query.length > 1) {
+            try {
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+                const searchResults = await response.json();
+                renderEmailList(searchResults);
+            } catch (error) { console.error('Search error:', error); }
+        } else if (query.length === 0) {
+            renderEmailList();
+        }
+    }, 300);
+}
+
+function handleEmailSelect(emailId, checkbox) {
+    if (checkbox.checked) {
+        selectedEmailIds.add(emailId);
+    } else {
+        selectedEmailIds.delete(emailId);
+    }
+    updateBulkActionsToolbar();
+}
+
+function handleSelectAll(event) {
+    const isChecked = event.target.checked;
+    const emailCheckboxes = document.querySelectorAll('.email-item-checkbox');
+    selectedEmailIds.clear();
+    const filteredEmails = getFilteredEmails();
+    if (isChecked) {
+        filteredEmails.forEach(email => selectedEmailIds.add(email.id));
+    }
+    emailCheckboxes.forEach(cb => cb.checked = isChecked);
+    updateBulkActionsToolbar();
+}
+
+async function handleBulkMove() {
+    const categoriesResponse = await fetch('/get_categories');
+    const data = await categoriesResponse.json();
+    const categories = data.categories.join(', ');
+    const targetCategory = prompt(`Move ${selectedEmailIds.size} emails to which folder?\n\nAvailable: ${categories}`);
+    
+    if (targetCategory && data.categories.includes(targetCategory.toLowerCase())) {
+        try {
+            await fetch('/bulk_update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email_ids: Array.from(selectedEmailIds), category: targetCategory.toLowerCase() })
+            });
+            selectedEmailIds.clear();
+            await initializePage();
+            document.getElementById('email-view-pane').innerHTML = '<p>Select an email to view its content.</p>';
+        } catch (error) { console.error('Bulk move error:', error); }
+    } else if (targetCategory) {
+        alert('Invalid category name.');
+    }
+}
+
+async function handleRefreshClick() {
+    const refreshBtn = document.getElementById('refresh-btn');
+    refreshBtn.classList.add('loading');
+    try {
+        await fetch('/refresh_emails', { method: 'POST' });
+        await initializePage();
+    } catch (error) {
+        console.error('Refresh error:', error);
+        alert('An error occurred while refreshing.');
+    } finally {
+        refreshBtn.classList.remove('loading');
+    }
+}
+
+// --- HELPER to get currently visible emails ---
+function getFilteredEmails() {
+    if (activeCategory === 'all') return emails;
+    if (activeCategory === 'primary') return emails.filter(e => e.category !== 'spam');
+    return emails.filter(e => e.category === activeCategory);
 }
 
 // --- RENDERING FUNCTIONS ---
@@ -56,6 +162,8 @@ async function renderFolders() {
         allFolder.innerHTML = `<div>${icons.all} All</div>`;
         allFolder.dataset.category = 'all';
         allFolder.onclick = () => selectFolder('all');
+        allFolder.addEventListener('dragover', handleDragOver);
+        allFolder.addEventListener('drop', handleDrop);
         folderList.appendChild(allFolder);
 
         data.categories.forEach(category => {
@@ -79,86 +187,43 @@ async function renderFolders() {
 
 function selectFolder(category) {
     activeCategory = category;
-    renderFolders();
-    renderEmailList();
+    document.getElementById('search-input').value = '';
+    selectedEmailIds.clear();
+    initializePage();
 }
 
-function renderEmailList() {
-    const emailListPane = document.getElementById('email-list-pane');
-    emailListPane.innerHTML = '';
+function renderEmailList(emailsToRender = null) {
+    const emailListContent = document.getElementById('email-list-content');
+    emailListContent.innerHTML = '';
     
-    // --- THIS IS THE IMPROVEMENT ---
-    let filteredEmails;
-    if (activeCategory === 'all') {
-        filteredEmails = emails;
-    } else if (activeCategory === 'primary') {
-        // Show all emails that are NOT spam
-        filteredEmails = emails.filter(email => email.category !== 'spam');
-    } else {
-        // For 'spam' or custom folders, show only that specific category
-        filteredEmails = emails.filter(email => email.category === activeCategory);
+    const filteredEmails = emailsToRender !== null ? emailsToRender : getFilteredEmails();
+
+    if (filteredEmails.length === 0) {
+        emailListContent.innerHTML = '<p style="padding: 20px; color: #627D98;">No emails found.</p>';
+        return;
     }
 
     filteredEmails.forEach(email => {
         const item = document.createElement('div');
         item.className = 'email-item';
         item.dataset.id = email.id;
+        
+        item.innerHTML = `
+            <input type="checkbox" class="email-item-checkbox" onchange="handleEmailSelect(${email.id}, this)">
+            <div class="email-item-details">
+                <div class="from">${email.from}</div>
+                <div class="subject">${email.subject}</div>
+            </div>
+        `;
+        item.querySelector('.email-item-details').onclick = () => displayEmail(email.id);
         item.draggable = true;
         item.addEventListener('dragstart', handleDragStart);
-        item.innerHTML = `<div class="from">${email.from}</div><div class="subject">${email.subject}</div>`;
-        item.onclick = () => displayEmail(email.id);
-        emailListPane.appendChild(item);
+        emailListContent.appendChild(item);
     });
+    updateBulkActionsToolbar();
 }
 
-async function displayEmail(emailId) {
-    activeEmailId = emailId;
-    const email = emails.find(e => e.id === emailId);
-    if (!email) return;
 
-    document.querySelectorAll('.email-item').forEach(item => item.classList.remove('active'));
-    document.querySelector(`.email-item[data-id='${emailId}']`).classList.add('active');
-
-    const emailViewPane = document.getElementById('email-view-pane');
-    const prediction = await classifyEmail(email.body);
-
-    emailViewPane.innerHTML = `
-        <div class="email-header">
-            <h2>${email.subject}</h2>
-            <span class="email-category-tag">${email.category.toUpperCase()}</span>
-        </div>
-        <p><strong>From:</strong> ${email.from}</p>
-        <div class="email-body">${email.body}</div>
-        <div class="ai-actions">
-            <h3>AI Analysis</h3>
-            <div id="ai-prediction" class="ai-prediction ${prediction}">AI's First Guess: ${prediction.toUpperCase()}</div>
-            <div class="correction-controls" data-email-id="${email.id}">
-                <p>Is this wrong? Correct it:</p>
-                <button data-label="primary">Move to Primary</button>
-                <button data-label="spam">Move to Spam</button>
-                <br><br>
-                <input type="text" id="custom-category-input" placeholder="Or a new category...">
-                <button id="learn-custom-btn">Learn Custom</button>
-            </div>
-        </div>
-    `;
-
-    const controls = emailViewPane.querySelector('.correction-controls');
-    controls.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') {
-            const emailId = parseInt(controls.dataset.emailId);
-            let label;
-            if (e.target.id === 'learn-custom-btn') {
-                label = document.getElementById('custom-category-input').value.trim().toLowerCase();
-            } else {
-                label = e.target.dataset.label;
-            }
-            if (label) {
-                learnAndUpdate(emailId, label);
-            }
-        }
-    });
-}
 
 // --- API & UPDATE FUNCTIONS ---
 async function classifyEmail(emailText) {
@@ -188,7 +253,7 @@ async function learnAndUpdate(emailId, correctLabel) {
             })
         });
         
-        await fetchAndRenderAll();
+        await initializePage();
         
         if (activeEmailId === emailId) {
             displayEmail(activeEmailId);
@@ -210,7 +275,7 @@ async function deleteCategory(category) {
         const data = await response.json();
         if (response.ok) {
             activeCategory = 'all';
-            await fetchAndRenderAll();
+            await initializePage();
             document.getElementById('email-view-pane').innerHTML = '<p>Select an email to view its content.</p>';
         } else {
             alert(`Error: ${data.error}`);

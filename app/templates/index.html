@@ -16,26 +16,48 @@
                 </svg>
                 <h1>AI Classifier</h1>
             </div>
-            
-            <!-- --- THIS IS THE UPDATED PROFILE SECTION --- -->
-            <div class="profile-section" id="profile-section">
-                <div class="avatar" id="avatar">{{ current_user.username[0].upper() }}</div>
-                <span class="username">{{ current_user.username }}</span>
-                <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+
+            <!-- --- THIS IS THE UPDATED HEADER SECTION --- -->
+            <div class="header-right">
+                <div class="search-bar">
+                    <input type="search" id="search-input" placeholder="Search mail...">
+                </div>
                 
-                <div class="profile-dropdown" id="profile-dropdown">
-                    <a href="{{ url_for('auth_bp.settings') }}">Settings</a> <!-- THIS IS THE CHANGE -->
-                    <a href="{{ url_for('auth_bp.logout') }}">Logout</a>
+                <div class="profile-section" id="profile-section">
+                    <div class="avatar" id="avatar">{{ current_user.username[0].upper() }}</div>
+                    <span class="username">{{ current_user.username }}</span>
+                    <svg class="chevron" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                    
+                    <div class="profile-dropdown" id="profile-dropdown">
+                        <a href="{{ url_for('auth_bp.settings') }}">Settings</a>
+                        <a href="{{ url_for('auth_bp.logout') }}">Logout</a>
+                    </div>
                 </div>
             </div>
         </header>
 
         <nav class="folders-pane">
-            <h3>Folders</h3>
+            <div class="folders-header">
+                <h3>Folders</h3>
+                <button id="refresh-btn" class="refresh-btn" title="Refresh Emails">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                </button>
+            </div>
             <ul id="folder-list" class="folder-list"></ul>
         </nav>
-
-        <aside class="email-list-pane" id="email-list-pane"></aside>
+        <aside class="email-list-pane">
+            <!-- --- NEW BULK ACTIONS TOOLBAR --- -->
+            <div class="email-list-header">
+                <input type="checkbox" id="select-all-checkbox" title="Select All">
+                <div id="bulk-actions-toolbar" class="bulk-actions-toolbar">
+                    <button id="bulk-move-btn">Move to...</button>
+                    <!-- More bulk buttons could go here -->
+                </div>
+            </div>
+            <div id="email-list-content">
+                <!-- Email list will be dynamically inserted here -->
+            </div>
+        </aside>
 
         <main class="email-view-pane" id="email-view-pane">
             <p>Select an email to view its content.</p>

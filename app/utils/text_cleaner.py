@@ -25,10 +25,14 @@ def clean_email_text(raw_email: str) -> str:
             body = msg.get_payload(decode=True).decode('utf-8', errors='ignore')
         
         if not body.strip():
-            body = raw_text
-    except Exception:
-        body = raw_text
+            body = raw_email
 
+    except Exception:
+        # --- THIS IS THE FIX ---
+        # The variable name was incorrect. It should be raw_email.
+        body = raw_email
+
+    # Continue with the cleaning process on the determined body text
     body = body.lower()
     body = re.sub(r'http\S+|www\S+|https\S+', '', body, flags=re.MULTILINE)
     body = re.sub(r'\S*@\S*\s?', '', body)
@@ -36,8 +40,6 @@ def clean_email_text(raw_email: str) -> str:
     body = re.sub(r'[^\w\s]', '', body)
     body = re.sub(r'\s+', ' ', body).strip()
     
-    # --- THIS IS THE FIX ---
-    # We customize the stop word list to keep important words.
     stop_words = set(stopwords.words('english'))
     words_to_keep = {'won', 'not', 'no', 'win'}
     stop_words = stop_words - words_to_keep

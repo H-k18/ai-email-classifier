@@ -1,3 +1,4 @@
+# app/email_poller.py
 import imaplib
 import email
 from email.header import decode_header
@@ -8,109 +9,104 @@ from app.encryption_service import decrypt_data
 
 def get_decoded_text(part):
     """A robust function to decode email parts."""
-    charset = part.get_content_charset()
+    charset = part.get_content_charset() or 'utf-8'
     payload = part.get_payload(decode=True)
-    if charset and payload:
-        try:
-            return payload.decode(charset, 'ignore')
-        except (UnicodeDecodeError, LookupError):
-            return payload.decode('latin-1', 'ignore')
-    elif payload:
-        try:
-            return payload.decode('utf-8', 'ignore')
-        except UnicodeDecodeError:
-            return payload.decode('latin-1', 'ignore')
-    return ""
+    try:
+        return payload.decode(charset, 'ignore')
+    except (UnicodeDecodeError, LookupError):
+        return payload.decode('latin-1', 'ignore')
 
-def fetch_new_emails():
+def fetch_emails_for_user(user):
     """
-    Fetches new emails for ALL users who have provided credentials
-    and saves them to the database.
+    Fetches new emails for a SINGLE user, prioritizing HTML content for correct formatting.
     """
+    print(f"Checking for new emails for user: {user.username}")
+    mail = None
+    try:
+        imap_server = user.imap_server
+        email_user = decrypt_data(user.encrypted_email)
+        email_pass = decrypt_data(user.encrypted_password)
+
+        if not all([imap_server, email_user, email_pass]): return False
+
+        mail = imaplib.IMAP4_SSL(imap_server)
+        mail.login(email_user, email_pass)
+        mail.select("inbox")
+
+        is_new_user = Email.query.filter_by(user_id=user.id).count() == 0
+        search_criteria = "ALL" if is_new_user else "(UNSEEN)"
+        if is_new_user: print(f"New user detected. Performing initial sync...")
+
+        status, messages = mail.search(None, search_criteria)
+        email_ids = messages[0].split()
+
+        if is_new_user and len(email_ids) > 250:
+            email_ids = email_ids[-250:]
+
+        if not email_ids:
+            print(f"No new emails found for {user.username}.")
+            return True
+
+        print(f"Found {len(email_ids)} emails to process for {user.username}.")
+        primary_category = Category.query.filter_by(name='primary', user_id=user.id).first()
+        if not primary_category: return False
+
+        batch_size = 20
+        for i in range(0, len(email_ids), batch_size):
+            batch = email_ids[i:i+batch_size]
+            print(f"Processing batch {i//batch_size + 1}...")
+            for email_id in batch:
+                try:
+                    status, msg_data = mail.fetch(email_id, "(RFC822)")
+                    for response_part in msg_data:
+                        if isinstance(response_part, tuple):
+                            msg = email.message_from_bytes(response_part[1])
+                            subject_header = decode_header(msg["Subject"])
+                            subject = subject_header[0][0]
+                            if isinstance(subject, bytes):
+                                subject = subject.decode(subject_header[0][1] or 'utf-8', 'ignore')
+                            
+                            from_header = decode_header(msg.get("From"))
+                            sender = from_header[0][0]
+                            if isinstance(sender, bytes):
+                                sender = sender.decode(from_header[0][1] or 'utf-8', 'ignore')
+                            
+                            html_body = ""
+                            plain_body = ""
+                            if msg.is_multipart():
+                                for part in msg.walk():
+                                    content_type = part.get_content_type()
+                                    if content_type == "text/html" and not html_body:
+                                        html_body = get_decoded_text(part)
+                                    elif content_type == "text/plain" and not plain_body:
+                                        plain_body = get_decoded_text(part)
+                            else:
+                                plain_body = get_decoded_text(msg)
+
+                            # --- THIS IS THE DEFINITIVE FIX ---
+                            # Prioritize the full HTML body. If it doesn't exist,
+                            # fall back to the plain text, converting its line breaks to <br> tags.
+                            body = html_body if html_body else plain_body.replace('\n', '<br>')
+                            
+                            new_email = Email(sender=sender, subject=subject, body=body, owner=user, category=primary_category)
+                            db.session.add(new_email)
+                except Exception as e:
+                    print(f"Could not process email ID {email_id.decode()}: {e}. Skipping.")
+                    continue
+            db.session.commit()
+            print(f"Batch {i//batch_size + 1} committed.")
+        return True
+    except Exception as e:
+        print(f"Failed to fetch emails for user {user.username}: {e}")
+        return False
+    finally:
+        if mail and mail.state == 'SELECTED':
+            mail.close()
+            mail.logout()
+
+def poll_all_users():
     app = create_app()
     with app.app_context():
-        # Find all users who have saved their email credentials
         users_to_poll = User.query.filter(User.encrypted_password != None).all()
-        
-        if not users_to_poll:
-            print("No users with polling credentials configured. Skipping email fetch.")
-            return
-
-        print(f"Polling emails for {len(users_to_poll)} user(s)...")
-
         for user in users_to_poll:
-            print(f"Checking for new emails for user: {user.username}")
-            try:
-                # Decrypt the user's credentials
-                imap_server = user.imap_server
-                email_user = decrypt_data(user.encrypted_email)
-                email_pass = decrypt_data(user.encrypted_password)
-
-                if not imap_server or not email_user or not email_pass:
-                    continue
-
-                mail = imaplib.IMAP4_SSL(imap_server)
-                mail.login(email_user, email_pass)
-                mail.select("inbox")
-
-                status, messages = mail.search(None, "(UNSEEN)")
-                email_ids = messages[0].split()
-
-                if not email_ids:
-                    print(f"No new emails found for {user.username}.")
-                    continue
-
-                print(f"Found {len(email_ids)} new emails for {user.username}.")
-                
-                # Get the user's default 'primary' category
-                primary_category = Category.query.filter_by(name='primary', user_id=user.id).first()
-                if not primary_category:
-                    print(f"Could not find a primary category for {user.username}. Skipping.")
-                    continue
-
-                for email_id in email_ids:
-                    try:
-                        status, msg_data = mail.fetch(email_id, "(RFC822)")
-                        for response_part in msg_data:
-                            if isinstance(response_part, tuple):
-                                msg = email.message_from_bytes(response_part[1])
-                                
-                                subject, encoding = decode_header(msg["Subject"])[0]
-                                if isinstance(subject, bytes):
-                                    subject = subject.decode(encoding if encoding else "latin-1", 'ignore')
-                                
-                                from_, encoding = decode_header(msg.get("From"))[0]
-                                if isinstance(from_, bytes):
-                                    from_ = from_.decode(encoding if encoding else "latin-1", 'ignore')
-
-                                body = ""
-                                if msg.is_multipart():
-                                    for part in msg.walk():
-                                        if part.get_content_type() == "text/plain":
-                                            body = get_decoded_text(part)
-                                            break
-                                else:
-                                    body = get_decoded_text(msg)
-                                
-                                # Create a new Email object and save it to the database
-                                new_email = Email(
-                                    sender=from_,
-                                    subject=subject,
-                                    body=body,
-                                    owner=user,
-                                    category=primary_category
-                                )
-                                db.session.add(new_email)
-                    except Exception as e:
-                        print(f"Could not process email ID {email_id.decode()} for user {user.username}: {e}. Skipping.")
-                        continue
-                
-                db.session.commit()
-                print(f"Successfully added {len(email_ids)} new emails for {user.username}.")
-
-            except Exception as e:
-                print(f"Failed to fetch emails for user {user.username}: {e}")
-            finally:
-                if 'mail' in locals() and mail.state == 'SELECTED':
-                    mail.close()
-                    mail.logout()
+            fetch_emails_for_user(user)

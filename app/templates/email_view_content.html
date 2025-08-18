@@ -1,0 +1,23 @@
+<div class="email-header">
+    <h2>{{ email.subject }}</h2>
+    <span class="email-category-tag">{{ email.category.name.upper() }}</span>
+</div>
+<p><strong>From:</strong> {{ email.sender }}</p>
+
+<!-- The sanitized email body is rendered here with perfect formatting -->
+<div class="email-body">
+    {{ safe_body|safe }}
+</div>
+
+<div class="ai-actions">
+    <h3>AI Analysis</h3>
+    <div id="ai-prediction" class="ai-prediction {{ prediction }}">AI's First Guess: {{ prediction.upper() }}</div>
+    <div class="correction-controls" data-email-id="{{ email.id }}">
+        <p>Is this wrong? Correct it:</p>
+        <button data-label="primary">Move to Primary</button>
+        <button data-label="spam">Move to Spam</button>
+        <br><br>
+        <input type="text" id="custom-category-input" placeholder="Or a new category...">
+        <button id="learn-custom-btn">Learn Custom</button>
+    </div>
+</div>

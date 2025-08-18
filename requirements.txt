@@ -14,3 +14,4 @@ Flask-Migrate
 pytest
 pytest-flask
 pytest-mock
+bleach

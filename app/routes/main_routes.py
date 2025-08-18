@@ -2,10 +2,12 @@
 # app/routes/main_routes.py
 from flask import Blueprint, render_template, request, jsonify, Response # <-- THIS LINE IS FIXED
 from flask_login import login_required, current_user
+# --- THIS IS THE FIX ---
+# We import the single, shared instance of our AI service, not the class.
 from app.ml_service.model_provider import predictor_instance
 from app.models import User, Email, Category
 from app import db
-from sqlalchemy import or_
+from sqlalchemy import or_, desc
 from sqlalchemy.orm import joinedload
 import os
 
@@ -22,18 +24,19 @@ def index():
 @main_bp.route('/get_emails', methods=['GET'])
 @login_required
 def get_emails():
-    user_emails = Email.query.options(joinedload(Email.category)).filter_by(user_id=current_user.id).all()
+    user_emails = Email.query.options(joinedload(Email.category))\
+        .filter_by(user_id=current_user.id)\
+        .order_by(desc(Email.id)).all()
+    
     emails_list = [
         {"id": email.id, "from": email.sender, "subject": email.subject, "body": email.body, "category": email.category.name}
         for email in user_emails
     ]
     return jsonify(emails_list)
 
-# --- THIS IS THE NEW DEDICATED ROUTE FOR EMAIL CONTENT ---
 @main_bp.route('/email_content/<int:email_id>')
 @login_required
 def email_content(email_id):
-    """Securely serves the raw HTML content of a single email."""
     email = db.session.get(Email, email_id)
     if not email or email.user_id != current_user.id:
         return "Not found", 404
@@ -42,13 +45,10 @@ def email_content(email_id):
 @main_bp.route('/predict', methods=['POST'])
 @login_required
 def predict():
-    """
-    This now correctly predicts using the AI model's text cleaner
-    to avoid the "ERROR" bug.
-    """
     data = request.get_json()
-    # Use the predictor's own internal cleaner
-    prediction = predictor_instance.predict(data['email_text'])
+    # --- THIS IS THE FIX ---
+    # We now correctly call the method on the shared instance.
+    prediction = predictor_instance.predict(data['email_text'], user_id=current_user.id)
     return jsonify({'prediction': prediction})
 
 @main_bp.route('/learn', methods=['POST'])
@@ -58,7 +58,9 @@ def learn():
     email_id = data['email_id']
     correct_label = data['correct_label']
     
-    predictor_instance.learn(data['email_text'], correct_label)
+    # --- THIS IS THE FIX ---
+    # We now correctly call the method on the shared instance.
+    predictor_instance.learn(data['email_text'], correct_label, user_id=current_user.id)
     
     category = Category.query.filter_by(name=correct_label, user_id=current_user.id).first()
     if not category:
@@ -72,7 +74,6 @@ def learn():
         db.session.commit()
     
     return jsonify({'message': f"Model updated and correction saved permanently."})
-
 
 @main_bp.route('/get_categories', methods=['GET'])
 @login_required

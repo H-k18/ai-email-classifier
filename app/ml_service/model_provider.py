@@ -1,12 +1,9 @@
 # app/ml_service/model_provider.py
-from app.ml_service.predictor import PredictorService
-from app.config import Config
+from app.ml_service.predictor import HybridPredictorService
 
-# This is the key: The service is instantiated ONCE when this module is first imported.
-# It lives for the entire duration of the application process, guaranteeing a single state.
-print("Creating a single, persistent PredictorService instance...")
-predictor_instance = PredictorService(
-    model_path=Config.CLASSIFIER_MODEL_PATH,
-    vectorizer_path=Config.VECTORIZER_MODEL_PATH
-)
-print("PredictorService instance created.")
+# --- THIS IS THE DEFINITIVE FIX ---
+# We now correctly initialize the AI model when the application starts.
+print("Initializing the AI model service...")
+predictor_instance = HybridPredictorService()
+predictor_instance.initialize_spam_model() # This line ensures the model is loaded
+print("AI model service is ready.")

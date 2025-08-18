@@ -128,6 +128,56 @@ async function handleBulkMove() {
         alert('Invalid category name.');
     }
 }
+async function displayEmail(emailId) {
+    activeEmailId = emailId;
+    const email = emails.find(e => e.id === emailId);
+    if (!email) return;
+
+    document.querySelectorAll('.email-item').forEach(item => item.classList.remove('active'));
+    document.querySelector(`.email-item[data-id='${emailId}']`).classList.add('active');
+
+    const emailViewPane = document.getElementById('email-view-pane');
+    const prediction = await classifyEmail(email.body);
+
+    // --- THIS IS THE FIX ---
+    // The iframe's src is now pointed to the correct /email_content/ URL.
+    emailViewPane.innerHTML = `
+        <div class="email-header">
+            <h2>${email.subject}</h2>
+            <span class="email-category-tag">${email.category.toUpperCase()}</span>
+        </div>
+        <p><strong>From:</strong> ${email.from}</p>
+        <iframe class="email-body-iframe" src="/email_content/${email.id}" sandbox="allow-same-origin"></iframe>
+        <div class="ai-actions">
+            <h3>AI Analysis</h3>
+            <div id="ai-prediction" class="ai-prediction ${prediction}">AI's First Guess: ${prediction.toUpperCase()}</div>
+            <div class="correction-controls" data-email-id="${email.id}">
+                <p>Is this wrong? Correct it:</p>
+                <button data-label="primary">Move to Primary</button>
+                <button data-label="spam">Move to Spam</button>
+                <br><br>
+                <input type="text" id="custom-category-input" placeholder="Or a new category...">
+                <button id="learn-custom-btn">Learn Custom</button>
+            </div>
+        </div>
+    `;
+
+    const controls = emailViewPane.querySelector('.correction-controls');
+    controls.addEventListener('click', (e) => {
+        if (e.target.tagName === 'BUTTON') {
+            const emailId = parseInt(controls.dataset.emailId);
+            let label;
+            if (e.target.id === 'learn-custom-btn') {
+                label = document.getElementById('custom-category-input').value.trim().toLowerCase();
+            } else {
+                label = e.target.dataset.label;
+            }
+            if (label) {
+                learnAndUpdate(emailId, label);
+            }
+        }
+    });
+}
 
 async function handleRefreshClick() {
     const refreshBtn = document.getElementById('refresh-btn');

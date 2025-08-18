@@ -15,3 +15,6 @@ pytest
 pytest-flask
 pytest-mock
 bleach
+transformer
+torch
+

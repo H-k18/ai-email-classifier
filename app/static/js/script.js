@@ -128,56 +128,6 @@ async function handleBulkMove() {
         alert('Invalid category name.');
     }
 }
-async function displayEmail(emailId) {
-    activeEmailId = emailId;
-    const email = emails.find(e => e.id === emailId);
-    if (!email) return;
-
-    document.querySelectorAll('.email-item').forEach(item => item.classList.remove('active'));
-    document.querySelector(`.email-item[data-id='${emailId}']`).classList.add('active');
-
-    const emailViewPane = document.getElementById('email-view-pane');
-    const prediction = await classifyEmail(email.body);
-
-    // --- THIS IS THE FIX ---
-    // The iframe's src is now pointed to the correct /email_content/ URL.
-    emailViewPane.innerHTML = `
-        <div class="email-header">
-            <h2>${email.subject}</h2>
-            <span class="email-category-tag">${email.category.toUpperCase()}</span>
-        </div>
-        <p><strong>From:</strong> ${email.from}</p>
-        <iframe class="email-body-iframe" src="/email_content/${email.id}" sandbox="allow-same-origin"></iframe>
-        <div class="ai-actions">
-            <h3>AI Analysis</h3>
-            <div id="ai-prediction" class="ai-prediction ${prediction}">AI's First Guess: ${prediction.toUpperCase()}</div>
-            <div class="correction-controls" data-email-id="${email.id}">
-                <p>Is this wrong? Correct it:</p>
-                <button data-label="primary">Move to Primary</button>
-                <button data-label="spam">Move to Spam</button>
-                <br><br>
-                <input type="text" id="custom-category-input" placeholder="Or a new category...">
-                <button id="learn-custom-btn">Learn Custom</button>
-            </div>
-        </div>
-    `;
-
-    const controls = emailViewPane.querySelector('.correction-controls');
-    controls.addEventListener('click', (e) => {
-        if (e.target.tagName === 'BUTTON') {
-            const emailId = parseInt(controls.dataset.emailId);
-            let label;
-            if (e.target.id === 'learn-custom-btn') {
-                label = document.getElementById('custom-category-input').value.trim().toLowerCase();
-            } else {
-                label = e.target.dataset.label;
-            }
-            if (label) {
-                learnAndUpdate(emailId, label);
-            }
-        }
-    });
-}
 
 async function handleRefreshClick() {
     const refreshBtn = document.getElementById('refresh-btn');
@@ -200,7 +150,6 @@ function getFilteredEmails() {
     return emails.filter(e => e.category === activeCategory);
 }
 
-// --- RENDERING FUNCTIONS ---
 async function renderFolders() {
     try {
         const response = await fetch(`/get_categories?t=${new Date().getTime()}`);
@@ -208,8 +157,16 @@ async function renderFolders() {
         const folderList = document.getElementById('folder-list');
         folderList.innerHTML = '';
 
+        // --- THIS IS THE UPDATED LOGIC ---
+        // Calculate total counts for the "All" folder
+        const all_total = emails.length;
+        const all_unread = emails.filter(e => !e.is_read).length;
+
         const allFolder = document.createElement('li');
-        allFolder.innerHTML = `<div>${icons.all} All</div>`;
+        allFolder.innerHTML = `
+            <div class="folder-name">${icons.all} All</div>
+            <span class="folder-count">${all_unread} / ${all_total}</span>
+        `;
         allFolder.dataset.category = 'all';
         allFolder.onclick = () => selectFolder('all');
         allFolder.addEventListener('dragover', handleDragOver);
@@ -218,14 +175,19 @@ async function renderFolders() {
 
         data.categories.forEach(category => {
             const li = document.createElement('li');
-            const icon = icons[category] || icons.default;
+            const icon = icons[category.name] || icons.default;
             let deleteButtonHTML = '';
-            if (category !== 'primary' && category !== 'spam') {
-                deleteButtonHTML = `<span class="delete-btn" onclick="event.stopPropagation(); deleteCategory('${category}');">${icons.delete}</span>`;
+            if (category.name !== 'primary' && category.name !== 'spam') {
+                deleteButtonHTML = `<span class="delete-btn" onclick="event.stopPropagation(); deleteCategory('${category.name}');">${icons.delete}</span>`;
             }
-            li.innerHTML = `<div>${icon} ${category.charAt(0).toUpperCase() + category.slice(1)}</div> ${deleteButtonHTML}`;
-            li.dataset.category = category;
-            li.onclick = () => selectFolder(category);
+            
+            li.innerHTML = `
+                <div class="folder-name">${icon} ${category.name.charAt(0).toUpperCase() + category.name.slice(1)}</div>
+                <span class="folder-count">${category.unread_count} / ${category.total_count}</span>
+                ${deleteButtonHTML}
+            `;
+            li.dataset.category = category.name;
+            li.onclick = () => selectFolder(category.name);
             li.addEventListener('dragover', handleDragOver);
             li.addEventListener('drop', handleDrop);
             folderList.appendChild(li);
@@ -233,6 +195,70 @@ async function renderFolders() {
         const activeFolder = document.querySelector(`.folder-list li[data-category='${activeCategory}']`);
         if (activeFolder) activeFolder.classList.add('active');
     } catch (error) { console.error('Error fetching categories:', error); }
+}
+
+async function displayEmail(emailId) {
+    activeEmailId = emailId;
+    const email = emails.find(e => e.id === emailId);
+    if (!email) return;
+
+    // --- THIS IS THE UPDATED LOGIC ---
+    // Mark the email as read in our local data and refresh the folder counts
+    if (!email.is_read) {
+        email.is_read = true;
+        renderFolders();
+    }
+
+    document.querySelectorAll('.email-item').forEach(item => item.classList.remove('active'));
+    document.querySelector(`.email-item[data-id='${emailId}']`).classList.add('active');
+
+    const emailViewPane = document.getElementById('email-view-pane');
+    
+    // Fetch the pre-rendered HTML from the server (this also marks it as read on the backend)
+    try {
+        const response = await fetch(`/email_content/${email.id}`);
+        const htmlContent = await response.text();
+        const prediction = await classifyEmail(email.body);
+
+        emailViewPane.innerHTML = `
+            <div class="email-header">
+                <h2>${email.subject}</h2>
+                <span class="email-category-tag">${email.category.toUpperCase()}</span>
+            </div>
+            <p><strong>From:</strong> ${email.from}</p>
+            <div class="email-body-iframe">${htmlContent}</div> 
+            <div class="ai-actions">
+                <h3>AI Analysis</h3>
+                <div id="ai-prediction" class="ai-prediction ${prediction}">AI's First Guess: ${prediction.toUpperCase()}</div>
+                <div class="correction-controls" data-email-id="${email.id}">
+                    <p>Is this wrong? Correct it:</p>
+                    <button data-label="primary">Move to Primary</button>
+                    <button data-label="spam">Move to Spam</button>
+                    <br><br>
+                    <input type="text" id="custom-category-input" placeholder="Or a new category...">
+                    <button id="learn-custom-btn">Learn Custom</button>
+                </div>
+            </div>
+        `;
+
+        const controls = emailViewPane.querySelector('.correction-controls');
+        controls.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const emailId = parseInt(controls.dataset.emailId);
+                let label;
+                if (e.target.id === 'learn-custom-btn') {
+                    label = document.getElementById('custom-category-input').value.trim().toLowerCase();
+                } else {
+                    label = e.target.dataset.label;
+                }
+                if (label) {
+                    learnAndUpdate(emailId, label);
+                }
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching email content:', error);
+    }
 }
 
 function selectFolder(category) {

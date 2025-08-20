@@ -19,14 +19,15 @@ class User(UserMixin, db.Model):
     categories = db.relationship('Category', backref='owner', lazy=True, cascade="all, delete-orphan")
 
 class Email(db.Model):
-    """Database model for individual emails."""
     id = db.Column(db.Integer, primary_key=True)
     sender = db.Column(db.String(200), nullable=False)
     subject = db.Column(db.String(300), nullable=False)
     body = db.Column(db.Text, nullable=False)
-    received_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Foreign Keys to link to other tables
+    # --- THIS IS THE NEW COLUMN ---
+    is_read = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # --- Relationships ---
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'), nullable=False)
 

@@ -34,14 +34,6 @@ def get_emails():
     ]
     return jsonify(emails_list)
 
-@main_bp.route('/email_content/<int:email_id>')
-@login_required
-def email_content(email_id):
-    email = db.session.get(Email, email_id)
-    if not email or email.user_id != current_user.id:
-        return "Not found", 404
-    return Response(email.body, mimetype='text/html')
-
 @main_bp.route('/predict', methods=['POST'])
 @login_required
 def predict():
@@ -78,8 +70,43 @@ def learn():
 @main_bp.route('/get_categories', methods=['GET'])
 @login_required
 def get_categories():
+    """
+    Gets all categories for the user and calculates the total and unread
+    email counts for each one.
+    """
     user_categories = Category.query.filter_by(user_id=current_user.id).all()
-    return jsonify({'categories': [cat.name for cat in user_categories]})
+    
+    # --- THIS IS THE NEW LOGIC ---
+    categories_with_counts = []
+    for cat in user_categories:
+        total_count = Email.query.filter_by(category_id=cat.id).count()
+        unread_count = Email.query.filter_by(category_id=cat.id, is_read=False).count()
+        categories_with_counts.append({
+            "name": cat.name,
+            "total_count": total_count,
+            "unread_count": unread_count
+        })
+        
+    return jsonify({'categories': categories_with_counts})
+
+@main_bp.route('/email_content/<int:email_id>')
+@login_required
+def email_content(email_id):
+    """
+    Securely serves the raw HTML content of a single email and
+    marks the email as read.
+    """
+    email = db.session.get(Email, email_id)
+    if not email or email.user_id != current_user.id:
+        return "Not found", 404
+    
+    # --- THIS IS THE NEW LOGIC ---
+    # Mark the email as read when it is viewed
+    if not email.is_read:
+        email.is_read = True
+        db.session.commit()
+
+    return Response(email.body, mimetype='text/html')
 
 
 @main_bp.route('/delete_category', methods=['POST'])

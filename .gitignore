@@ -14,3 +14,6 @@ __pycache__/
 
 # Secret credentials file
 .env
+
+# Database file
+app.db
